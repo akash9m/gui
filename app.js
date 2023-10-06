@@ -17,7 +17,7 @@ import findOrCreate from "mongoose-findorcreate";
 const app = express();
 
 app.use(session({
-    secret: "my little secret is dumb",
+    secret: "my little secret is",
     resave: false,
     saveUninitialized: false
 }))
@@ -30,7 +30,8 @@ mongoose.connect("mongodb+srv://akash:akash0912@learnmdb.hlomhum.mongodb.net/use
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    secret:String
 });
 userSchema.plugin(passportLocalMonngoose)
 userSchema.plugin(findOrCreate)
@@ -98,11 +99,37 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/submit", (req, res) => {
-    res.render("submit");
-});
-app.get("/secrets", (req, res) => {
     if (req.isAuthenticated()) {
-        res.render("secrets");
+        res.render("submit");
+    } else {
+        res.redirect("/login");
+    }
+});
+
+app.post("/submit",async(req,res)=>{
+    const submitedsecret=req.body.secret;
+    try {
+        const founduser= await User.findById(req.user.id).exec();
+        if(founduser){
+            founduser.secret=submitedsecret;
+            founduser.save();
+            res.redirect("/secrets");
+        }
+    } catch (error) {
+        console.log(error)
+    }
+})
+
+app.get("/secrets",async (req, res) => {
+    if (req.isAuthenticated()) {
+        try {
+            const foundusers= await User.find({"secret":{$ne:null}}).exec();
+            if(foundusers){
+                res.render("secrets",{userswithsecret:foundusers});
+            }
+        } catch (error) {
+            console.log(error)
+        }
     } else {
         res.redirect("/login");
     }
